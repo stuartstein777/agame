@@ -2,13 +2,11 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -39,17 +37,23 @@ type Coord struct {
 	Y int
 }
 
+type ViewPort struct {
+	xy     Coord
+	height int
+	width  int
+}
 type Game struct {
 	playLocation Coord
-	keys         []ebiten.Key
+	viewPort     ViewPort
 	layers       [][]int
+	dungeon      [][]Tile
 }
 
 func (g *Game) Update() error {
 
-	location := ((g.playLocation.Y * 22) - 1) + g.playLocation.X
+	location := ((g.playLocation.Y * 100) - 1) + g.playLocation.X //todo: is this wrong?
 
-	g.layers[1][location] = 0
+	g.layers[1][location] = 5 // 5 = transparent image.
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 		g.playLocation.X -= 1
@@ -84,24 +88,25 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	w := tilesImage.Bounds().Dx()
 	tileXCount := w / tileSize
 
-	const xCount = screenWidth / tileSize
 	for _, l := range g.layers {
-		for i, t := range l {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64((i%xCount)*tileSize), float64((i/xCount)*tileSize))
 
-			sx := (t % tileXCount) * tileSize
-			sy := (t / tileXCount) * tileSize
-			screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
+		for y := 0; y < g.viewPort.height; y++ {
+			viewPortStart := (((g.viewPort.xy.Y + y) * 100) - 1) + g.viewPort.xy.X
+			viewPortEnd := viewPortStart + g.viewPort.width
+
+			row := l[viewPortStart:viewPortEnd]
+
+			for i, t := range row {
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM.Translate(float64((i * tileSize)), float64(y*tileSize))
+
+				sx := (t % tileXCount) * tileSize
+				sy := (t / tileXCount) * tileSize
+				screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
+			}
 		}
 	}
-
-	//ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
-	//ebitenutil.DebugPrint(screen, fmt.Sprintf("Keys: %v", g.keys))
-
-	//location := ((g.playLocation.Y * 22) - 1) + g.playLocation.X
-
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Player location: %v", g.playLocation))
+	//ebitenutil.DebugPrint(screen, fmt.Sprintf("Player location: %v", g.playLocation))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -109,51 +114,28 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	dungeon := MakeDungeon()
+	layers := MakeLayers(dungeon)
+
 	g := &Game{
 		playLocation: Coord{
-			X: 12,
-			Y: 7,
+			X: 30,
+			Y: 19,
 		},
-		layers: [][]int{
-			{
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		viewPort: ViewPort{
+			xy: Coord{
+				X: 20,
+				Y: 12,
 			},
-			{
-				1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-				1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-			},
+			height: 15,
+			width:  22,
 		},
+		dungeon: MakeDungeon(),
+		layers:  layers,
 	}
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
+	ebiten.SetWindowTitle("Rogue like")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
