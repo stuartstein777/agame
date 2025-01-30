@@ -32,6 +32,7 @@ type Game struct {
 	layers       [][]int
 	dungeon      [][]entities.Tile
 	debugMessage string
+	showGrid     bool
 }
 
 func init() {
@@ -70,6 +71,8 @@ func (g *Game) Update() error {
 		if g.dungeon[g.playLocation.Y][g.playLocation.X+1].TileType != Wall {
 			g.playLocation.X += 1
 		}
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyG) {
+		g.showGrid = !g.showGrid
 	}
 
 	// update player sprite in layers [1]
@@ -113,24 +116,25 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
+	if g.showGrid {
+		gridImage := ebiten.NewImage(g.viewPort.Width*tileSize, g.viewPort.Height*tileSize)
+		gridColor := color.RGBA{R: 48, G: 213, B: 200, A: 255} // Light gray grid
 
-	gridImage := ebiten.NewImage(g.viewPort.Width*tileSize, g.viewPort.Height*tileSize)
-	gridColor := color.RGBA{R: 0, G: 0, B: 200, A: 255} // Light gray grid
+		for y := 0; y <= g.viewPort.Height; y++ {
+			vector.StrokeLine(gridImage, 0, float32(y*tileSize), float32(g.viewPort.Width*tileSize), float32(y*tileSize), 0.5, gridColor, true)
+		}
+		for x := 0; x <= g.viewPort.Width; x++ {
+			vector.StrokeLine(gridImage, float32(x*tileSize), 0, float32(x*tileSize), float32(g.viewPort.Height*tileSize), 0.5, gridColor, true)
+		}
 
-	for y := 0; y <= g.viewPort.Height; y++ {
-		vector.StrokeLine(gridImage, 0, float32(y*tileSize), float32(g.viewPort.Width*tileSize), float32(y*tileSize), 0.5, gridColor, true)
+		op := &ebiten.DrawImageOptions{}
+		screen.DrawImage(gridImage, op)
+
+		ebitenutil.DebugPrintAt(screen,
+			fmt.Sprintf("Player location: %v, ViewPort location :%v, Pushed: %s", g.playLocation, g.viewPort, g.debugMessage),
+			5, 20)
+		//ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()), 5, 5)
 	}
-	for x := 0; x <= g.viewPort.Width; x++ {
-		vector.StrokeLine(gridImage, float32(x*tileSize), 0, float32(x*tileSize), float32(g.viewPort.Height*tileSize), 0.5, gridColor, true)
-	}
-
-	op := &ebiten.DrawImageOptions{}
-	screen.DrawImage(gridImage, op)
-
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()), 5, 5)
-	ebitenutil.DebugPrintAt(screen,
-		fmt.Sprintf("Player location: %v, ViewPort location :%v, Pushed: %s", g.playLocation, g.viewPort, g.debugMessage),
-		5, 20)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
