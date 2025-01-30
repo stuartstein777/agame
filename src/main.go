@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -51,35 +53,35 @@ type Game struct {
 
 func (g *Game) Update() error {
 
-	location := ((g.playLocation.Y * 100) - 1) + g.playLocation.X //todo: is this wrong?
+	location := (g.playLocation.Y * 100) + g.playLocation.X
 
 	g.layers[1][location] = 5 // 5 = transparent image.
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 		g.playLocation.X -= 1
-		if g.playLocation.X == 0 {
-			g.playLocation.X = 1
-		}
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-		g.playLocation.X += 1
-		if g.playLocation.X == 23 {
-			g.playLocation.X = 22
-		}
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
-		g.playLocation.Y += 1
-		if g.playLocation.Y == 15 {
-			g.playLocation.Y = 14
-		}
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 		g.playLocation.Y -= 1
-		if g.playLocation.Y < 0 {
-			g.playLocation.Y = 0
-		}
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
+		g.playLocation.Y += 1
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
+		g.playLocation.X += 1
 	}
 
-	// update player spritee in layers [1]
-	location = ((g.playLocation.Y * 22) - 1) + g.playLocation.X
+	// update player sprite in layers [1]
+	location = (g.playLocation.Y * 100) + g.playLocation.X
 	g.layers[1][location] = 2
+
+	// if player is within 3 tiles of the edge of the viewport, move the viewport
+	// in the direction the player is moving.
+	if g.playLocation.X-g.viewPort.xy.X < 3 {
+		g.viewPort.xy.X -= 1
+	} else if g.playLocation.X-g.viewPort.xy.X > g.viewPort.width-3 {
+		g.viewPort.xy.X += 1
+	} else if g.playLocation.Y-g.viewPort.xy.Y > g.viewPort.height-3 {
+		g.viewPort.xy.Y += 1
+	} else if g.playLocation.Y-g.viewPort.xy.Y < 3 {
+		g.viewPort.xy.Y -= 1
+	}
 
 	return nil
 }
@@ -106,7 +108,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
-	//ebitenutil.DebugPrint(screen, fmt.Sprintf("Player location: %v", g.playLocation))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("Player location: %v, ViewPort location :%v", g.playLocation, g.viewPort))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -125,7 +127,7 @@ func main() {
 		viewPort: ViewPort{
 			xy: Coord{
 				X: 20,
-				Y: 12,
+				Y: 15,
 			},
 			height: 15,
 			width:  22,
