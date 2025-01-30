@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"os"
+
+	"github.com/stuartstein777/roguelike/entities"
 )
 
 const (
@@ -10,14 +12,7 @@ const (
 	Wall = iota
 )
 
-// struct for a Tile
-type Tile struct {
-	X        int
-	Y        int
-	TileType int
-}
-
-func LoadDungeon(dungeon [][]Tile) {
+func LoadDungeon(dungeon [][]entities.Tile) {
 	file := "dungeon1.txt"
 	f, err := os.Open(file)
 	if err != nil {
@@ -45,11 +40,11 @@ func LoadDungeon(dungeon [][]Tile) {
 	}
 }
 
-func MakeDungeon() [][]Tile {
-	dungeon := make([][]Tile, 100)
+func MakeDungeon() [][]entities.Tile {
+	dungeon := make([][]entities.Tile, 100)
 
 	for y := 0; y < 100; y++ {
-		dungeon[y] = make([]Tile, 100)
+		dungeon[y] = make([]entities.Tile, 100)
 
 		for x := 0; x < 100; x++ {
 			dungeon[y][x].TileType = Open
@@ -62,7 +57,7 @@ func MakeDungeon() [][]Tile {
 	return dungeon
 }
 
-func MakeLayers(dungeon [][]Tile) [][]int {
+func MakeLayers(dungeon [][]entities.Tile) [][]int {
 	layers := make([][]int, 2)
 
 	for i := 0; i < 2; i++ {

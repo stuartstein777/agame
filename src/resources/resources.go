@@ -1,4 +1,4 @@
-package main
+package resources
 
 import (
 	_ "embed"
