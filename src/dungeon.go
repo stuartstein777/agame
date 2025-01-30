@@ -9,7 +9,8 @@ import (
 
 const (
 	Open = iota
-	Wall = iota
+	Wall
+	Blank
 )
 
 func LoadDungeon(dungeon [][]entities.Tile) {
@@ -26,10 +27,12 @@ func LoadDungeon(dungeon [][]entities.Tile) {
 		line := scanner.Text()
 		for x, char := range line {
 			switch char {
-			case '#':
+			case '.':
 				dungeon[y][x].TileType = Open
 			case '@':
 				dungeon[y][x].TileType = Wall
+			case ' ':
+				dungeon[y][x].TileType = Blank
 			}
 		}
 		y++
@@ -72,7 +75,9 @@ func MakeLayers(dungeon [][]entities.Tile) [][]int {
 
 	for y := 0; y < 100; y++ {
 		for x := 0; x < 100; x++ {
-			if dungeon[y][x].TileType == Open {
+			if dungeon[y][x].TileType == Blank {
+				layers[0][x+(y*100)] = 5
+			} else if dungeon[y][x].TileType == Open {
 				layers[0][x+(y*100)] = 1
 			} else {
 				layers[0][x+(y*100)] = 0

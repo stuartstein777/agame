@@ -117,7 +117,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	gridImage := ebiten.NewImage(g.viewPort.Width*tileSize, g.viewPort.Height*tileSize)
 	gridColor := color.RGBA{R: 0, G: 0, B: 200, A: 255} // Light gray grid
 
-	// Draw grid lines on the grid image
 	for y := 0; y <= g.viewPort.Height; y++ {
 		vector.StrokeLine(gridImage, 0, float32(y*tileSize), float32(g.viewPort.Width*tileSize), float32(y*tileSize), 0.5, gridColor, true)
 	}
@@ -125,7 +124,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		vector.StrokeLine(gridImage, float32(x*tileSize), 0, float32(x*tileSize), float32(g.viewPort.Height*tileSize), 0.5, gridColor, true)
 	}
 
-	// Now draw the grid image onto the screen
 	op := &ebiten.DrawImageOptions{}
 	screen.DrawImage(gridImage, op)
 
