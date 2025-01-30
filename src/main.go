@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/stuartstein777/roguelike/entities"
 	"github.com/stuartstein777/roguelike/resources"
@@ -32,18 +34,13 @@ type Game struct {
 	debugMessage string
 }
 
-var (
-	tilesImage *ebiten.Image
-	Tiles_png  []byte // Add this line to define Tiles_png
-)
-
 func init() {
 	// Decode an image from the image file's byte slice.
 	img, _, err := image.Decode(bytes.NewReader(resources.Tiles_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage = ebiten.NewImageFromImage(img)
+	resources.TilesImage = ebiten.NewImageFromImage(img)
 }
 
 func (g *Game) Update() error {
@@ -95,7 +92,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	w := tilesImage.Bounds().Dx()
+	w := resources.TilesImage.Bounds().Dx()
 	tileXCount := w / tileSize
 
 	for _, l := range g.layers {
@@ -112,14 +109,30 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 				sx := (t % tileXCount) * tileSize
 				sy := (t / tileXCount) * tileSize
-				screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
+				screen.DrawImage(resources.TilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
 			}
 		}
 	}
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
+
+	gridImage := ebiten.NewImage(g.viewPort.Width*tileSize, g.viewPort.Height*tileSize)
+	gridColor := color.RGBA{R: 0, G: 0, B: 200, A: 255} // Light gray grid
+
+	// Draw grid lines on the grid image
+	for y := 0; y <= g.viewPort.Height; y++ {
+		vector.StrokeLine(gridImage, 0, float32(y*tileSize), float32(g.viewPort.Width*tileSize), float32(y*tileSize), 0.5, gridColor, true)
+	}
+	for x := 0; x <= g.viewPort.Width; x++ {
+		vector.StrokeLine(gridImage, float32(x*tileSize), 0, float32(x*tileSize), float32(g.viewPort.Height*tileSize), 0.5, gridColor, true)
+	}
+
+	// Now draw the grid image onto the screen
+	op := &ebiten.DrawImageOptions{}
+	screen.DrawImage(gridImage, op)
+
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()), 5, 5)
 	ebitenutil.DebugPrintAt(screen,
 		fmt.Sprintf("Player location: %v, ViewPort location :%v, Pushed: %s", g.playLocation, g.viewPort, g.debugMessage),
-		10, 20)
+		5, 20)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
