@@ -11,6 +11,8 @@ const (
 	Open = iota
 	Wall
 	Blank
+	ClosedDoor
+	OpenDoor
 )
 
 func LoadDungeon(dungeon [][]entities.Tile) {
@@ -33,6 +35,11 @@ func LoadDungeon(dungeon [][]entities.Tile) {
 				dungeon[y][x].TileType = Wall
 			case ' ':
 				dungeon[y][x].TileType = Blank
+			case 'K':
+				dungeon[y][x].TileType = Open
+				dungeon[y][x].Items = append(dungeon[y][x].Items, entities.Item{Type: entities.Key, SpritesheetIdx: 6})
+			case 'D':
+				dungeon[y][x].TileType = ClosedDoor
 			}
 		}
 		y++
@@ -61,9 +68,9 @@ func MakeDungeon() [][]entities.Tile {
 }
 
 func MakeLayers(dungeon [][]entities.Tile) [][]int {
-	layers := make([][]int, 2)
+	layers := make([][]int, 3)
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		layers[i] = make([]int, 100*100)
 	}
 
@@ -75,19 +82,31 @@ func MakeLayers(dungeon [][]entities.Tile) [][]int {
 
 	for y := 0; y < 100; y++ {
 		for x := 0; x < 100; x++ {
-			if dungeon[y][x].TileType == Blank {
-				layers[0][x+(y*100)] = 5
-			} else if dungeon[y][x].TileType == Open {
-				layers[0][x+(y*100)] = 1
-			} else {
-				layers[0][x+(y*100)] = 0
-			}
+			layers[1][x+(y*100)] = 5
+			layers[2][x+(y*100)] = 5
 		}
 	}
 
 	for y := 0; y < 100; y++ {
 		for x := 0; x < 100; x++ {
-			layers[1][x+(y*100)] = 5
+			if dungeon[y][x].TileType == Blank {
+				layers[0][x+(y*100)] = 5
+			} else if dungeon[y][x].TileType == Open {
+				layers[0][x+(y*100)] = 1
+				if len(dungeon[y][x].Items) != 0 {
+					item := dungeon[y][x].Items[0]
+					layers[1][x+(y*100)] = item.SpritesheetIdx
+				}
+			} else if dungeon[y][x].TileType == ClosedDoor {
+				layers[0][x+(y*100)] = 1
+				layers[1][x+(y*100)] = 7
+			} else {
+				if y < 99 && dungeon[y+1][x].TileType == Wall {
+					layers[0][x+(y*100)] = 0
+				} else {
+					layers[0][x+(y*100)] = 3
+				}
+			}
 		}
 	}
 
